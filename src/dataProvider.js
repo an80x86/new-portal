@@ -11,7 +11,7 @@ import {
 } from 'react-admin';
 import { stringify } from 'query-string';
 
-const API_URL = 'http://jsonplaceholder.typicode.com';
+const API_URL = 'http://localhost:3004';
 
 /**
  * @param {String} type One of the constants appearing at the top if this file, e.g. 'UPDATE'
@@ -20,24 +20,17 @@ const API_URL = 'http://jsonplaceholder.typicode.com';
  * @returns {Object} { url, options } The HTTP request parameters
  */
 const convertDataProviderRequestToHTTP = (type, resource, params) => {
-    console.log(type);
     switch (type) {
     case GET_LIST: {
         const { page, perPage } = params.pagination;
         const { field, order } = params.sort;
-        //const query = {
-        //    sort: JSON.stringify([field, order]),
-        //    range: JSON.stringify([(page - 1) * perPage, page * perPage - 1]),
-        //    filter: JSON.stringify(params.filter),
-        //};
-        const start = (page-1)*perPage;
-        const url = `${API_URL}/${resource}?_start=${start}&_limit=${perPage}`;
-        console.log(url);
-        return { url };
+        const start = (page - 1) * perPage;
+        const end = page * perPage - 1;
+        const url = { url: `${API_URL}/${resource}?_start=${start}&_end=${end}&_sort=${field}&_order=${order}` };
+        return url;
     }
-    case GET_ONE: {
+    case GET_ONE:
         return { url: `${API_URL}/${resource}/${params.id}` };
-    }
     case GET_MANY: {
         const query = {
             filter: JSON.stringify({ id: params.ids }),
@@ -85,10 +78,10 @@ const convertHTTPResponseToDataProvider = (response, type, resource, params) => 
     const { headers, json } = response;
     switch (type) {
     case GET_LIST:
-        console.log(response.headers);
+        console.log();
         return {
             data: json.map(x => x),
-            total: parseInt(headers.get('content-range').split('/').pop(), 10),
+            total: parseInt(headers.get('x-total-count').split('/').pop(), 10),
         };
     case CREATE:
         return { data: { ...params.data, id: json.id } };
